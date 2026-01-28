@@ -3,15 +3,16 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import HeaderForm from "./components/forms/HeaderForm";
 import BasicDetailsForm from "./components/forms/BasicDetailsForm";
+import CourseDetailsForm from "./components/forms/CourseDetailsForm";
 import DocketPreview from "./components/preview/DocketPreview";
 
 export default function App() {
   const previewRef = useRef(null);
-  
+
   const [headerData, setHeaderData] = useState({
     title: "ELSC, New Delhi",
     subtitle: "Movement Chart / Processing Note",
-    academicYear: "2025-26"
+    academicYear: "2025-26",
   });
 
   const [basicData, setBasicData] = useState({
@@ -30,119 +31,91 @@ export default function App() {
     courseFees: "",
     eligibility: "",
     insurance: "",
-    deviation: ""
+    deviation: "",
   });
 
-  const handleHeaderChange = (field, value) => {
-    setHeaderData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  const [courseData, setCourseData] = useState({
+    courseName: "",
+    instituteName: "",
+    instituteAddress: "",
+    instituteCategory: "",
+    commencementDate: "",
+    security: "",
+    interestDuringMoratorium: "",
+    margin: "",
+    reimbursement: "",
+    rateOfInterest: "",
+    insurance: "",
+    moratoriumPeriod: "",
+    expectedIncome: "",
+    loanTenure: "",
+  });
 
-  const handleBasicChange = (field, value) => {
-    setBasicData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
+  const handleHeaderChange = (f, v) => setHeaderData((p) => ({ ...p, [f]: v }));
+  const handleBasicChange = (f, v) => setBasicData((p) => ({ ...p, [f]: v }));
+  const handleCourseChange = (f, v) => setCourseData((p) => ({ ...p, [f]: v }));
 
   const handleDownload = async () => {
     if (!previewRef.current) return;
 
-    try {
-      // Capture the preview as canvas
-      const canvas = await html2canvas(previewRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff"
-      });
+    const canvas = await html2canvas(previewRef.current, {
+      scale: 2,
+      backgroundColor: "#fff",
+      windowWidth: previewRef.current.scrollWidth,
+      scrollX: 0,
+      scrollY: 0,
+    });
 
-      // Convert canvas to image
-      const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+    const imgData = canvas.toDataURL("image/png");
+    const ratio = pdf.internal.pageSize.getWidth() / canvas.width;
 
-      // Create PDF with A4 dimensions
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4"
-      });
+    pdf.addImage(
+      imgData,
+      "PNG",
+      0,
+      0,
+      canvas.width * ratio,
+      canvas.height * ratio,
+    );
 
-      // Calculate dimensions to fit A4
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const imgX = (pdfWidth - imgWidth * ratio) / 2;
-      const imgY = 0;
-
-      pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth * ratio, imgHeight * ratio);
-      pdf.save("docket.pdf");
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Failed to generate PDF. Please try again.");
-    }
+    pdf.save("docket.pdf");
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, height: "100vh" }}>
-      {/* Left Side - Form */}
-      <div style={{ padding: "20px", backgroundColor: "#f5f5f5", overflowY: "auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
-          <h1 style={{ fontSize: "24px", margin: 0 }}>Docket Generator</h1>
-          
+    <div className="h-screen grid grid-cols-1 lg:grid-cols-[50vw_50vw]">
+      {/* LEFT – FORM */}
+      <div className="p-5 bg-gray-100 overflow-y-auto">
+        <div className="flex items-center justify-between mb-5">
+          <h1 className="text-2xl font-semibold">Docket Generator</h1>
+
           <button
             onClick={handleDownload}
-            style={{
-              padding: "10px 20px",
-              backgroundColor: "#4CAF50",
-              color: "white",
-              border: "none",
-              borderRadius: "4px",
-              fontSize: "14px",
-              fontWeight: "500",
-              cursor: "pointer",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              transition: "all 0.3s ease"
-            }}
-            onMouseOver={(e) => {
-              e.target.style.backgroundColor = "#45a049";
-              e.target.style.boxShadow = "0 4px 6px rgba(0,0,0,0.3)";
-            }}
-            onMouseOut={(e) => {
-              e.target.style.backgroundColor = "#4CAF50";
-              e.target.style.boxShadow = "0 2px 4px rgba(0,0,0,0.2)";
-            }}
-            title="Download PDF"
+            className="px-5 py-2 bg-green-600 text-white rounded shadow hover:bg-green-700 transition"
           >
-            <span>📥</span>
-            <span>Download PDF</span>
+            📥 Download PDF
           </button>
         </div>
-        
+
         <HeaderForm data={headerData} onChange={handleHeaderChange} />
         <BasicDetailsForm data={basicData} onChange={handleBasicChange} />
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-3">Course Details</h2>
+          <CourseDetailsForm data={courseData} onChange={handleCourseChange} />
+        </div>
       </div>
 
-      {/* Right Side - Preview */}
-      <div style={{ 
-        padding: "20px", 
-        backgroundColor: "#e5e5e5", 
-        overflowY: "auto",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "flex-start"
-      }}>
-        <div ref={previewRef} style={{ marginLeft: "20px" }}>
-          <DocketPreview headerData={headerData} basicData={basicData} />
+      {/* RIGHT – PREVIEW */}
+      <div className="bg-teal-600 overflow-y-auto flex justify-center min-w-0">
+        <div className="w-full flex justify-center py-6 min-w-0">
+          {/* SCALE WRAPPER */}
+          <div className="origin-top scale-[0.75] xl:scale-[0.85]">
+            <div ref={previewRef}>
+              <DocketPreview headerData={headerData} basicData={basicData} courseData={courseData} />
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
