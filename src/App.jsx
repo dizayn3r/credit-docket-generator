@@ -56,19 +56,44 @@ export default function App() {
   const handleCourseChange = (f, v) => setCourseData((p) => ({ ...p, [f]: v }));
 
   const handleDownload = async () => {
-    if (!previewRef.current) return;
+  if (!previewRef.current) return;
 
-    const canvas = await html2canvas(previewRef.current, {
+  // 🔥 CLONE THE NODE
+  const clonedNode = previewRef.current.cloneNode(true);
+
+  // 🔥 FORCE SAFE COLORS ON CLONE
+  clonedNode.style.backgroundColor = "#ffffff";
+  clonedNode.style.color = "#333333";
+
+  // 🔥 REMOVE TAILWIND CLASSES FROM CLONE
+  clonedNode.querySelectorAll("*").forEach((el) => {
+    el.className = "";
+    el.style.color ||= "#333333";
+    el.style.backgroundColor ||= "#ffffff";
+    el.style.borderColor ||= "#cccccc";
+  });
+
+  // 🔥 TEMP CONTAINER (off-screen)
+  const tempContainer = document.createElement("div");
+  tempContainer.style.position = "fixed";
+  tempContainer.style.left = "-10000px";
+  tempContainer.appendChild(clonedNode);
+  document.body.appendChild(tempContainer);
+
+  try {
+    const canvas = await html2canvas(clonedNode, {
       scale: 2,
-      backgroundColor: "#fff",
-      windowWidth: previewRef.current.scrollWidth,
-      scrollX: 0,
-      scrollY: 0,
+      backgroundColor: "#ffffff",
+      useCORS: true,
     });
 
-    const pdf = new jsPDF("p", "mm", "a4");
+    document.body.removeChild(tempContainer);
+
     const imgData = canvas.toDataURL("image/png");
-    const ratio = pdf.internal.pageSize.getWidth() / canvas.width;
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const ratio = pdfWidth / canvas.width;
 
     pdf.addImage(
       imgData,
@@ -76,11 +101,16 @@ export default function App() {
       0,
       0,
       canvas.width * ratio,
-      canvas.height * ratio,
+      canvas.height * ratio
     );
 
     pdf.save("docket.pdf");
-  };
+  } catch (e) {
+    document.body.removeChild(tempContainer);
+    throw e;
+  }
+};
+
 
   return (
     <div className="h-screen grid grid-cols-1 lg:grid-cols-[50vw_50vw]">
